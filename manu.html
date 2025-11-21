@@ -8,6 +8,7 @@
         /* --- RESET Y ESTRUCTURA --- */
         * {
             box-sizing: border-box;
+            -webkit-touch-callout: none;
         }
 
         body {
@@ -24,6 +25,7 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            touch-action: none; /* Vital para móvil */
         }
 
         /* --- TABLERO --- */
@@ -46,7 +48,8 @@
             width: 100%;
             height: 100%;
             background-color: #fff;
-            overflow: hidden; 
+            overflow: visible; 
+            z-index: 1;
         }
 
         /* --- MENSAJES OCULTOS --- */
@@ -69,12 +72,11 @@
             color: #111;
             word-wrap: break-word;
             background-color: #f2c52c; 
-            z-index: 0;
-            /* Permitir clicks en el enlace cuando la foto no está */
-            pointer-events: auto; 
+            z-index: 0; 
+            pointer-events: auto;
+            overflow: hidden;
         }
 
-        /* Estilo para el botón del vídeo */
         .video-link {
             background-color: #d22828;
             color: white !important;
@@ -86,7 +88,8 @@
             font-size: 1.1em;
             box-shadow: 3px 3px 0px rgba(0,0,0,1);
             cursor: pointer;
-            pointer-events: auto; /* Asegura que sea clickeable */
+            pointer-events: auto;
+            position: relative; 
             z-index: 10;
         }
         
@@ -95,23 +98,20 @@
             box-shadow: 1px 1px 0px rgba(0,0,0,1);
         }
 
-        /* Colores de fondo */
         #cell-0 .message-layer, #cell-8 .message-layer { background-color: #f2c52c; }
         #cell-1 .message-layer, #cell-7 .message-layer { background-color: #8fbcd4; }
         #cell-2 .message-layer, #cell-6 .message-layer { background-color: #e0e0e0; }
         #cell-3 .message-layer, #cell-5 .message-layer { background-color: #e85d4e; }
 
-        /* --- MENSAJE CENTRAL --- */
         #cell-4 .message-layer {
             background-color: #fff;
             color: #d22828;
             border: none;
             font-size: clamp(12px, 4vmin, 22px);
             padding: 10px;
-            z-index: 0;
         }
 
-        /* --- FICHAS (FOTOS) --- */
+        /* --- FICHAS --- */
         .tile {
             position: absolute;
             top: 0;
@@ -119,26 +119,19 @@
             width: 100%;
             height: 100%;
             cursor: grab;
-            z-index: 2;
+            z-index: 10; /* Base */
             background-size: cover;
             background-position: center;
             background-color: #111; 
             border-radius: 0; 
             touch-action: none;
             transform: translate(0, 0) scale(1);
-            transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: transform 0.2s ease; /* Transición suave normal */
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
         }
 
         .tile:active {
             cursor: grabbing;
-        }
-
-        .tile.dragging {
-            z-index: 100 !important;
-            transform: scale(1.05);
-            box-shadow: 15px 15px 0px rgba(0,0,0,0.5); 
-            transition: none;
-            border: 2px solid #111; 
         }
 
         .tile.is-empty {
@@ -148,16 +141,20 @@
             z-index: -1;
         }
 
-        /* --- EXPLOSIÓN --- */
-        .particle {
+        /* --- NUEVO EFECTO EXPLOSIÓN SIMPLE --- */
+        .single-explosion {
             position: fixed;
             pointer-events: none;
-            font-size: 24px;
-            z-index: 9999;
-            font-family: "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+            font-size: 100px; /* Corazón muy grande */
+            z-index: 99999;
+            /* Centrado exacto usando transform */
+            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            will-change: transform, opacity;
         }
 
-        /* --- ASIGNACIÓN DE FOTOS --- */
+        /* --- FOTOS --- */
         .tile[data-id="1"] { background-image: url('foto1.jpg'); }
         .tile[data-id="2"] { background-image: url('foto2.jpg'); }
         .tile[data-id="3"] { background-image: url('foto3.jpg'); }
@@ -220,62 +217,21 @@
             let emptyCellIndex = 4; 
             const tiles = document.querySelectorAll('.tile');
             
-            let startX, startY, currentTile;
-            let initialParentZIndex = '';
+            let startX, startY, currentTile = null;
 
-            // --- CONFIGURACIÓN DE MENSAJES ---
-            // El índice 0 es el ORIGINAL.
-            // Los siguientes son pistas para buscar el enlace secreto.
-            // El enlace secreto está SOLO en la casilla 8 (Abajo derecha).
+            // --- FRASES ---
             const phrasesDB = {
-                0: [
-                    "Qué risa, eh.", 
-                    "Hay un secreto escondido...", 
-                    "Sigue moviendo fichas.", 
-                    "No está aquí, busca más."
-                ],
-                1: [
-                    "Alberto, ¿serías tan amable de invitarme a un cigarro?", 
-                    "El vídeo sorpresa no está aquí.", 
-                    "Prueba en las esquinas.", 
-                    "Frío, frío..."
-                ],
-                2: [
-                    "Me gustas pucho, me gustas pucho tú", 
-                    "Sigue buscando el regalo.", 
-                    "Mueve más las fotos.", 
-                    "Casi, pero no."
-                ],
-                3: [
-                    "Hola, ¿conocéis a mi amigo Alberto?", 
-                    "Busca abajo a la derecha.", 
-                    "El tesoro está cerca.", 
-                    "Sigue jugando..."
-                ],
-                // 4 es centro (no cambia)
-                5: [
-                    "Este es mi amigo Manu, ya os he hablado de él", 
-                    "Aquí no hay vídeo.", 
-                    "Mira en la fila de abajo.", 
-                    "Mueve esa ficha otra vez."
-                ],
-                6: [
-                    "Amigas para siempre", 
-                    "Estás muy cerca del vídeo.", 
-                    "Caliente, caliente...", 
-                    "No te rindas."
-                ],
-                7: [
-                    "Cucú", 
-                    "¡Mira a tu derecha!", 
-                    "El vídeo está al lado.", 
-                    "Una vez más..."
-                ],
+                0: ["Qué risa, eh.", "Hay un secreto escondido...", "Sigue moviendo fichas.", "No está aquí, busca más."],
+                1: ["Alberto, ¿serías tan amable de invitarme a un cigarro?", "El vídeo sorpresa no está aquí.", "Prueba en las esquinas.", "Frío, frío..."],
+                2: ["Me gustas pucho, me gustas pucho tú", "Sigue buscando el regalo.", "Mueve más las fotos.", "Casi, pero no."],
+                3: ["Hola, ¿conocéis a mi amigo Alberto?", "Busca abajo a la derecha.", "El tesoro está cerca.", "Sigue jugando..."],
+                5: ["Este es mi amigo Manu, ya os he hablado de él", "Aquí no hay vídeo.", "Mira en la fila de abajo.", "Mueve esa ficha otra vez."],
+                6: ["Amigas para siempre", "Estás muy cerca del vídeo.", "Caliente, caliente...", "No te rindas."],
+                7: ["Cucú", "¡Mira a tu derecha!", "El vídeo está al lado.", "Una vez más..."],
                 8: [
-                    "Manu es el mejor", // Original
+                    "Manu es el mejor", 
                     "¡Casi lo tienes!", 
                     "¡Sigue moviendo esta ficha!",
-                    // EL ENLACE AL VÍDEO (aparece tras mover un par de veces esta ficha)
                     "¡PREMIO!<br><a href='sorpresa.mp4' class='video-link'>VER VÍDEO ▶</a>"
                 ]
             };
@@ -289,9 +245,10 @@
                 if (e.target.classList.contains('is-empty')) return;
                 
                 currentTile = e.target;
-                initialParentZIndex = currentTile.parentElement.style.zIndex;
-                currentTile.parentElement.style.zIndex = "1000";
-                currentTile.classList.add('dragging');
+                
+                // ELEVACIÓN SUPREMA
+                currentTile.style.zIndex = "1000"; 
+                currentTile.style.transition = "none";
 
                 if (e.type === 'touchstart') {
                     startX = e.touches[0].clientX;
@@ -310,18 +267,23 @@
 
             function handleMove(e) {
                 if (!currentTile) return;
+                
                 let clientX, clientY;
                 if (e.type === 'touchmove') {
                     clientX = e.touches[0].clientX;
                     clientY = e.touches[0].clientY;
-                    e.preventDefault(); 
+                    if (e.cancelable) e.preventDefault(); // Bloquear scroll
                 } else {
                     clientX = e.clientX;
                     clientY = e.clientY;
                 }
+                
                 const diffX = clientX - startX;
                 const diffY = clientY - startY;
-                currentTile.style.transform = `translate(${diffX}px, ${diffY}px) scale(1.05)`;
+                
+                // Mover visualmente
+                currentTile.style.transform = `translate(${diffX}px, ${diffY}px) scale(1.1)`;
+                currentTile.style.boxShadow = "10px 10px 0px rgba(0,0,0,0.5)";
             }
 
             function handleEnd(e) {
@@ -332,16 +294,18 @@
 
                 if (!currentTile) return;
 
-                currentTile.classList.remove('dragging');
-                currentTile.parentElement.style.zIndex = initialParentZIndex;
-                currentTile.style.transform = '';
+                // Restaurar estilos base
+                currentTile.style.transform = ''; 
+                currentTile.style.zIndex = ''; 
+                currentTile.style.transition = 'transform 0.2s ease';
+                currentTile.style.boxShadow = '';
 
                 const currentCell = currentTile.parentElement;
                 const currentCellIndex = parseInt(currentCell.id.split('-')[1]);
-
+                
                 if (isAdjacent(currentCellIndex, emptyCellIndex)) {
                     let clientX, clientY;
-                    if (e.changedTouches) { 
+                    if (e.changedTouches && e.changedTouches.length > 0) { 
                         clientX = e.changedTouches[0].clientX;
                         clientY = e.changedTouches[0].clientY;
                     } else {
@@ -354,14 +318,21 @@
                     const dist = Math.sqrt(diffX*diffX + diffY*diffY);
 
                     if (dist < 10 || dist > 30) {
-                        // IMPORTANTE: Actualizamos el mensaje del hueco que se va a tapar.
+                        // 1. Actualizamos el mensaje del hueco que vamos a tapar
                         updateHiddenMessage(emptyCellIndex);
                         
+                        // 2. Movemos las fichas
                         swapTiles(currentCellIndex, emptyCellIndex);
-                        const targetCell = document.getElementById(`cell-${emptyCellIndex}`);
-                        explodeHearts(targetCell);
+                        
+                        // 3. Efecto corazón en la casilla que SE HA DESTAPADO (donde estaba la ficha)
+                        // currentCellIndex es ahora el hueco vacío donde se ve el texto.
+                        setTimeout(() => {
+                            const revealedCell = document.getElementById(`cell-${currentCellIndex}`);
+                            if(revealedCell) explodeSingleHeart(revealedCell);
+                        }, 50);
                     }
                 }
+                
                 currentTile = null;
             }
 
@@ -378,8 +349,10 @@
                 const emptyCell = document.getElementById(`cell-${emptyIndex}`);
                 const clickedTile = clickedCell.querySelector('.tile');
                 const emptyTile = emptyCell.querySelector('.tile');
+                
                 emptyCell.appendChild(clickedTile);
                 clickedCell.appendChild(emptyTile);
+                
                 emptyCellIndex = clickedIndex;
             }
 
@@ -387,49 +360,39 @@
                 if (cellIndex === 4) return;
                 const phrases = phrasesDB[cellIndex];
                 if (phrases) {
-                    // Elegimos una frase aleatoria de la lista (evitando la primera que es la fija inicial si ya hemos empezado a jugar)
-                    // Usamos Math.random() normal, esto significa que a veces saldrá una pista y a veces (en la casilla 8) saldrá el LINK.
-                    // Para hacerlo más divertido, usamos slice(1) para que ya no repita la original inicial, solo las nuevas pistas.
                     const newOptions = phrases.slice(1);
                     const randomPhrase = newOptions[Math.floor(Math.random() * newOptions.length)];
-                    
                     const cell = document.getElementById(`cell-${cellIndex}`);
                     const msgLayer = cell.querySelector('.message-layer');
-                    
-                    setTimeout(() => { 
-                        // Usamos innerHTML para que el enlace funcione
-                        msgLayer.innerHTML = randomPhrase; 
-                    }, 200);
+                    setTimeout(() => { msgLayer.innerHTML = randomPhrase; }, 200);
                 }
             }
 
-            function explodeHearts(element) {
+            // --- NUEVA FUNCIÓN: UN SOLO CORAZÓN ---
+            function explodeSingleHeart(element) {
                 const rect = element.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                const symbols = ['❤️', '💙', '💛', '🖤']; 
 
-                for (let i = 0; i < 15; i++) {
-                    const particle = document.createElement('div');
-                    particle.classList.add('particle');
-                    particle.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-                    document.body.appendChild(particle);
+                const heart = document.createElement('div');
+                heart.classList.add('single-explosion');
+                heart.innerText = '❤️';
+                document.body.appendChild(heart);
 
-                    const angle = Math.random() * Math.PI * 2; 
-                    const velocity = 60 + Math.random() * 120; 
-                    const tx = Math.cos(angle) * velocity;
-                    const ty = Math.sin(angle) * velocity;
-                    
-                    const animation = particle.animate([
-                        { transform: `translate(${centerX}px, ${centerY}px) scale(0)`, opacity: 1 },
-                        { transform: `translate(${centerX + tx}px, ${centerY + ty}px) scale(1.5) rotate(${Math.random()*360}deg)`, opacity: 0 }
-                    ], {
-                        duration: 700 + Math.random() * 300, 
-                        easing: 'cubic-bezier(0, .9, .57, 1)', 
-                        fill: 'forwards'
-                    });
-                    animation.onfinish = () => particle.remove();
-                }
+                // Posicionamos el corazón en el centro exacto de la celda
+                heart.style.left = `${centerX}px`;
+                heart.style.top = `${centerY}px`;
+
+                // Animación simple: Crece y se desvanece
+                const animation = heart.animate([
+                    { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0.8 },
+                    { transform: 'translate(-50%, -50%) scale(2.5)', opacity: 0 }
+                ], {
+                    duration: 600,
+                    easing: 'ease-out',
+                    fill: 'forwards'
+                });
+                animation.onfinish = () => heart.remove();
             }
         });
     </script>
