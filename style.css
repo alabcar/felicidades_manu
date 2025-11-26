@@ -1,0 +1,145 @@
+/* --- RESET Y ESTRUCTURA --- */
+* {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #f4f1ea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Arial Black', 'Helvetica Neue', Helvetica, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none; /* Vital para móvil */
+}
+
+/* --- TABLERO --- */
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px; 
+    background-color: #111;
+    border: 4px solid #111;
+    width: 95vmin;
+    height: 95vmin;
+    box-shadow: 10px 10px 0px rgba(210, 40, 40, 0.8); 
+    position: relative;
+}
+
+/* --- CELDA --- */
+.grid-cell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    overflow: visible; 
+    z-index: 1;
+}
+
+/* --- MENSAJES OCULTOS --- */
+.message-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    text-align: center;
+    font-size: clamp(10px, 3.2vmin, 18px); 
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: #111;
+    word-wrap: break-word;
+    background-color: #f2c52c; 
+    z-index: 0; 
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.video-link {
+    background-color: #d22828;
+    color: white !important;
+    padding: 10px 15px;
+    text-decoration: none;
+    border: 2px solid #000;
+    margin-top: 5px;
+    display: inline-block;
+    font-size: 1.1em;
+    box-shadow: 3px 3px 0px rgba(0,0,0,1);
+    cursor: pointer;
+    pointer-events: auto;
+    position: relative; 
+    z-index: 10;
+}
+        
+.video-link:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px rgba(0,0,0,1);
+}
+
+#cell-0 .message-layer, #cell-8 .message-layer { background-color: #f2c52c; }
+#cell-1 .message-layer, #cell-7 .message-layer { background-color: #8fbcd4; }
+#cell-2 .message-layer, #cell-6 .message-layer { background-color: #e0e0e0; }
+#cell-3 .message-layer, #cell-5 .message-layer { background-color: #e85d4e; }
+
+#cell-4 .message-layer {
+    background-color: #fff;
+    color: #d22828;
+    border: none;
+    font-size: clamp(12px, 4vmin, 22px);
+    padding: 10px;
+}
+
+/* --- FICHAS --- */
+.tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    z-index: 10; /* Base */
+    background-size: cover;
+    background-position: center;
+    background-color: #111; 
+    border-radius: 0; 
+    touch-action: none;
+    transform: translate(0, 0) scale(1);
+    transition: transform 0.2s ease; /* Transición suave normal */
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.tile:active {
+    cursor: grabbing;
+}
+
+.tile.is-empty {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    z-index: -1;
+}
+
+/* --- FOTOS --- */
+.tile[data-id="1"] { background-image: url('foto1.jpg'); }
+.tile[data-id="2"] { background-image: url('foto2.jpg'); }
+.tile[data-id="3"] { background-image: url('foto3.jpg'); }
+.tile[data-id="4"] { background-image: url('foto4.jpg'); }
+.tile[data-id="6"] { background-image: url('foto5.jpg'); } 
+.tile[data-id="7"] { background-image: url('foto6.jpg'); }
+.tile[data-id="8"] { background-image: url('foto7.jpg'); }
+.tile[data-id="9"] { background-image: url('foto8.jpg'); }
